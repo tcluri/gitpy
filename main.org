@@ -1,0 +1,107 @@
+#+title: Gitpy functions
+* A git client in Python
+This is a git client written in Python, a project to know the git internals better.
+
+Git comprises mainly of n things
+** Imports
+All the import needed to be imported to run the code
+
+#+begin_src python :session gitpy
+import os
+import hashlib
+import zlib
+import struct
+
+# Helper modules to import
+from util import read_file, write_file
+
+import collections
+#+end_src
+
+#+RESULTS:
+
+** Git objects
+*** Git blob
+*** Git tree
+*** Git commit
+** Git internal commands
+*** Hash object
+Git objects are hashed using sha1 hash algorithm. The git object can be either a blob, tree or commit.
+
+The following function takes in the information(data) to be hashed - a string, type of the object - a 'blob', 'tree' or 'commit' & writes it to disk.
+
+#+begin_src python :session gitpy
+# Creating and write hash object to file
+def hash_object(data, obj_type, write=True):
+    # Create header string and assign blob/tree/commit
+    header_bytestring = '{} {}'.format(obj_type, len(data)).encode()
+    full_data_in_bytes = header_bytestring + b'\0'+ data
+    # Calculating hash digest and hash hex digest
+    obj_sha1_hex_hash = hashlib.sha1(full_data_in_bytes).hexdigest()
+    # obj_sha1_hash = hashlib.sha1(full_data_in_bytes).digest()
+    # Write full data to the sha1 hash hex path
+    if write:
+        path = os.path.join('.git', 'objects', obj_sha1_hex_hash[:2], obj_sha1_hex_hash[2:])
+        if not os.path.exists(path):
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            write_file(path, zlib.compress(full_data_in_bytes))
+    # Return object obj_sha1_hex_hash digest & obj_sha1_hash digest
+    return obj_sha1_hex_hash
+#+end_src
+
+#+RESULTS:
+
+** Git index
+*** Read from index
+The index has entries of the files that have been hashed and written to disk the hash objects.
+
+
+The git internal command for writing the hash to index is
+
+`git update-index -add --cacheinfo {filemode} {sha1 of file} {filename}`
+
+#+begin_src python :session gitpy
+# Create the IndexEntry namedtuple from collections module
+# to store the file properties
+import collections
+
+# Data for one entry in the git index (.git/index)
+IndexEntry = collections.namedtuple('IndexEntry', [
+    'ctime_s', 'ctime_n', 'mtime_s', 'mtime_n', 'dev', 'ino', 'mode', 'uid',
+    'gid', 'size', 'sha1', 'flags', 'path',
+])
+
+
+def read_index():
+    """Read git index file and return list of IndexEntry objects."""
+    try:
+        data = read_file(os.path.join('.git', 'index'))
+    except FileNotFoundError:
+        return []
+    digest = hashlib.sha1(data[:-20]).digest()
+    assert digest == data[-20:], 'invalid index checksum'
+    signature, version, num_entries = struct.unpack('!4sLL', data[:12])
+    assert signature == b'DIRC', \
+            'invalid index signature {}'.format(signature)
+    assert version == 2, 'unknown index version {}'.format(version)
+    entry_data = data[12:-20]
+    entries = []
+    i = 0
+    while i + 62 < len(entry_data):
+        fields_end = i + 62
+        fields = struct.unpack('!LLLLLLLLLL20sH',
+                               entry_data[i:fields_end])
+        path_end = entry_data.index(b'\x00', fields_end)
+        path = entry_data[fields_end:path_end]
+        entry = IndexEntry(*(fields + (path.decode(),)))
+        entries.append(entry)
+        entry_len = ((62 + len(path) + 8) // 8) * 8
+        i += entry_len
+    assert len(entries) == num_entries
+    return entries
+#+end_src
+
+#+RESULTS:
+
+*** Write to index
+** Git write to tree
