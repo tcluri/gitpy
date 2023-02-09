@@ -296,11 +296,32 @@ def test_index_functions():
     filepaths_list = [file1, file2, file3]
     files_with_hashes_and_folders = add_git_objects(filepaths_list)
     print("Hashes of blobs(files) and folders:\n", files_with_hashes_and_folders)
+    # Nested tree list from git root './' with each subdirectory
+    nested_tree_dict = create_nested_trees(files_with_hashes_and_folders)
+    print("Nested tree dictionary:\n", nested_tree_dict)
     # TODO Writing to index file after adding
 
     # update_index(hash_with_filepath1)
-
     return
+
+
+def unroll_tree_strings(tree_dict, tree_root='./'):
+    print(tree_dict[tree_root])
+    for each_level in tree_dict[tree_root]:
+        if each_level[1] in tree_dict:
+            return unroll_tree_strings(tree_dict, each_level[1])
+
+
+def write_tree():
+   # Write to tree object and return a sha1 hash of the tree object
+   tree_entries = []
+   for entry in read_index():
+       mode_path = '{:o} {}'.format(entry.mode, entry.path).encode()
+       tree_entry = mode_path + b'\0' + entry.sha1
+       tree_entries.append(tree_entry)
+   return hash_object(b''.join(tree_entries), 'tree')
+
+
 
 def classify(path):
     """
@@ -324,17 +345,6 @@ def classify(path):
     else:
         raise ValueError('un-git-able file system entity %s' % fullpath)
     return mode, gitclass, st.st_size
-
-def write_tree():
-    # Write to tree object and return a sha1 hash of the tree object
-    tree_entries = []
-    for entry in read_index():
-        mode_path = '{:o} {}'.format(entry.mode, entry.path).encode()
-        tree_entry = mode_path + b'\0' + entry.sha1
-        tree_entries.append(tree_entry)
-    return hash_object(b''.join(tree_entries), 'tree')
-
-
 
 
 # Argument parsing in the main command
