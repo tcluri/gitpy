@@ -161,10 +161,10 @@ def find_parent_folders(a_folder_path):
     # Find root(.git/) folder for project
     a_folder_path = os.path.abspath(a_folder_path)
     rel_path_from_git_root = a_folder_path.replace(find_git_root(a_folder_path), '').lstrip('/')
-    print("Relative path from git root:", rel_path_from_git_root)
+    # print("Relative path from git root:", rel_path_from_git_root)
     # Split the filepath into folders
     filepath_folders = rel_path_from_git_root.split('/')
-    print("Folders path:", filepath_folders)
+    # print("Folders path:", filepath_folders)
 
     filepath_folders_len = len(filepath_folders)
     parent_folders_and_subfolders = []
@@ -204,24 +204,51 @@ def sorted_trees_with_files(path_blobs_list):
     return sorted_tree_folders
 
 
+def exists_in_hash_with_filepath(inp_str, hash_with_filepath_list):
+    for each_hash_with_filepath in hash_with_filepath_list:
+        if each_hash_with_filepath[1] == inp_str:
+            return True
+    return False
+
+
 def create_nested_trees(hash_with_tree_and_blobs):
     # Separate trees from non-trees
     tree_folders = [tree_with_path for tree_with_path in hash_with_tree_and_blobs if tree_with_path[0] == "tree"]
     blob_files = [blob_with_path for blob_with_path in hash_with_tree_and_blobs if blob_with_path[0] != "tree"]
-    # Compare each blob_path to the ones in tree_folders
-    all_files_dict = dict()
-    for each_blob_file in blob_files:
-        blob_dict = dict()
-        # Blob components
-        blob_dict["name"] = each_blob_file[1].rsplit('/', 1)[0]
-        blob_dict["type"] = classify(each_blob_file[1])
-        blob_tree.append(each_blob_file)
-        for each_tree_fold in tree_folders:
-            mode_num, gitclass_str, size = classify(each_blob_file[1])
-            if each_blob_file[1].rsplit('/', 1)[0] == each_tree_fold[1]:
-                blob_tree.append(each_tree_fold)
-        all_files.append(blob_tree)
-    return all_files
+    # print("Tree folders:",tree_folders)
+    # print("Blob files:", blob_files)
+
+    blob_hierarchy = dict()
+    tree_levels = []
+    for each_tree_folder in tree_folders:
+        each_tree_folder_unit = each_tree_folder[1] + '/'
+        tree_levels.append(each_tree_folder_unit)
+    # print("Tree levels:", tree_levels)
+
+    # Create tree hierarchy in the blob_hierarchy
+    for each_tree_level in tree_levels:
+        if each_tree_level[:-1] in blob_hierarchy:
+            for each_blob_or_tree in hash_with_tree_and_blobs:
+                if exists_in_hash_with_filepath(each_blob_or_tree[1], blob_hierarchy[each_tree_level[:-1]]):
+                    continue
+        else:
+            tree_level_files_folders = []
+            current_tree_level = each_tree_level
+            current_tree_levels_len = len(each_tree_level.split('/'))
+            for each_blob_or_tree in hash_with_tree_and_blobs:
+                tree_folder = each_blob_or_tree[1]
+                tree_folder_split_len = len((tree_folder+'/').split('/'))
+                if current_tree_level in tree_folder and tree_folder_split_len == current_tree_levels_len+1:
+                    tree_level_files_folders.append(each_blob_or_tree)
+            # Add just the one folder above and its files
+            blob_hierarchy[each_tree_level[:-1]] = tree_level_files_folders
+    # print("Blob hierarchy after adding trees:")
+    # print(blob_hierarchy)
+    blob_files_at_root = [each_blob_file for each_blob_file in hash_with_tree_and_blobs if '/' not in each_blob_file[1]]
+    blob_hierarchy['./'] = []
+    for blob_file_at_root in blob_files_at_root:
+        blob_hierarchy['./'].append(blob_file_at_root)
+    return blob_hierarchy
 
 
 def update_index(hashes_with_paths):
@@ -262,9 +289,12 @@ def test_index_functions():
     # Adding another blob
     file2 = "test/this/now/testthisnow.txt"
 
+    # Testing files within folders
+    file3 = "test/this.txt"
+
     # Writing files to .git/objects
-    filepaths_list = [file1, file2]
-    files_with_hashes_and_folders = add_git_objects(filepaths_list1)
+    filepaths_list = [file1, file2, file3]
+    files_with_hashes_and_folders = add_git_objects(filepaths_list)
     print("Hashes of blobs(files) and folders:\n", files_with_hashes_and_folders)
     # TODO Writing to index file after adding
 
