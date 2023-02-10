@@ -126,7 +126,7 @@ def add_git_objects(filepaths):
     """
     Create hashes of blobs to be added to the index given filepaths.
 
-    Returns list containing tuples - (blob hashe, filepath)
+    Returns list containing tuples - (blob hash, filepath)
     """
     filepaths_with_data = []
     for filepath in filepaths:
@@ -347,20 +347,20 @@ def classify(path):
     return mode, gitclass, st.st_size
 
 
-# Argument parsing in the main command
-import argparse
+# # Argument parsing in the main command
+# import argparse
 
-argparser = argparse.ArgumentParser(description="Gitpy content tracker")
-argsubparsers = argparser.add_subparsers(title="Command", dest="command")
-argsubparsers.required = True
+# argparser = argparse.ArgumentParser(description="Gitpy content tracker")
+# argsubparsers = argparser.add_subparsers(title="Command", dest="command")
+# argsubparsers.required = True
 
 
-def cmd_hash_object(args):
-    with open(args.path, "rb") as fd:
-        sha = hash_object(fd, args.type.encode(), write=True)
-        print(sha)
+# def cmd_hash_object(args):
+#     with open(args.path, "rb") as fd:
+#         sha = hash_object(fd, args.type.encode(), write=True)
+#         print(sha)
 
-def main(argv=sys.argv[1:]):
-    args = argparser.parse_args(argv)
-    # Command list to call the right function
-    if args.command == "hash-object"        : cmd_hash_object(args)
+# def main(argv=sys.argv[1:]):
+#     args = argparser.parse_args(argv)
+#     # Command list to call the right function
+#     if args.command == "hash-object"        : cmd_hash_object(args)
