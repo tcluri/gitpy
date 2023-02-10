@@ -3,3 +3,17 @@
 An attempt to write a minimal git client written in Python.
 
 ** TODO Setup
++ To test the function `test_index_functions()`, we need an empty repository where
+  git is initialized `git init`.
++ The files and folders should have the following structure. The files can have any
+  text in them.
+  #+begin_src shell
+.
+├── hello.txt
+└── test
+    ├── this
+    │   └── now
+    │       └── testthisnow.txt
+    └── this.txt
+
+  #+end_src
