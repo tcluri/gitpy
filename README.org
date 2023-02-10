@@ -1,0 +1,5 @@
+#+title: Readme
+* A minimal git client in Python
+An attempt to write a minimal git client written in Python.
+
+** TODO Setup
